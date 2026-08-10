@@ -14,7 +14,7 @@ import (
 const FETCH_ALL_RESULTS = -1
 const HREF = `(i?)href[:blank:]*=[:blank:]*"[^"]*"`
 const WEB_DOMAIN = `(i?)https?://.*/?`
-const TLS_PROTOCOL = "(?)https"
+const TLS_OVER_LOCALHOST = "(?)https://localhost"
 
 const TIMEOUT = 3
 
@@ -27,7 +27,7 @@ var W, T *regexp.Regexp
 
 func init() {
 	W = regexp.MustCompile(WEB_DOMAIN)
-	T = regexp.MustCompile(TLS_PROTOCOL)
+	T = regexp.MustCompile(TLS_OVER_LOCALHOST)
 }
 
 func main() {
