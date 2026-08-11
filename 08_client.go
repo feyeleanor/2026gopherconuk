@@ -20,57 +20,42 @@ const (
 	E_FILE_READ
 )
 
-var W *regexp.Regexp
+var H, W *regexp.Regexp
 
 func init() {
+	H = regexp.MustCompile(HREF)
 	W = regexp.MustCompile(WEB_DOMAIN)
 }
 
 func main() {
-	H := regexp.MustCompile(HREF)
-	ProcessTargets(func(b ...byte) {
-		if H.MatchString(string(b)) {
-			s := H.FindAllStringIndex(string(b), FETCH_ALL_RESULTS)
-			log.Printf("Found pattern %v times", len(s))
-
-			for _, v := range s {
-				log.Printf("Pattern matched: %v", string(b[v[0]:v[1]]))
-			}
-		}
-	})
-
-	ProcessTargets(func(b ...byte) {
-		ProcessText(H, b...)
-	})
+	ProcessTargets()
 	os.Exit(E_OK)
 }
 
-func ProcessTargets(f func(...byte)) {
-	if len(os.Args) > 0 {
-		fn := os.Args[1:]
-
-		if W.MatchString(fn[0]) {
-			log.Printf("Load Web Page: %v", fn[0])
+func ProcessTargets() {
+	ForArgs(func(fn string) {
+		if W.MatchString(fn) {
+			log.Printf("Load Web Page: %v", fn)
 			c := http.Client{Timeout: time.Duration(TIMEOUT) * time.Second}
-			ExitOnError(E_FILE_READ, func() (e error) {
-				if r, e := c.Get(fn[0]); e == nil {
-					ReadStream(r.Body, func(b ...byte) {
-						f(b...)
-					})
-				}
-				return
-			})
+			if r, e := c.Get(fn); e == nil {
+				ReadStream(r.Body, func(b ...byte) {
+					ProcessText(H, b...)
+				})
+			} else {
+				log.Print(e)
+				os.Exit(E_FILE_READ)
+			}
 
 		} else {
-			log.Printf("Load File: %v", fn[0])
-			ExitOnError(E_FILE_READ, func() (e error) {
-				if b, e := os.ReadFile(fn[0]); e == nil {
-					f(b...)
-				}
-				return
-			})
+			log.Printf("Load File: %v", fn)
+			if b, e := os.ReadFile(fn); e == nil {
+				ProcessText(H, b...)
+			} else {
+				log.Print(e)
+				os.Exit(E_FILE_READ)
+			}
 		}
-	}
+	})
 	return
 }
 
@@ -85,6 +70,14 @@ func ProcessText(r *regexp.Regexp, b ...byte) {
 	}
 }
 
+func ForArgs(f func(string)) {
+	if len(os.Args) > 0 {
+		for _, fn := range os.Args[1:] {
+			f(fn)
+		}
+	}
+}
+
 func ReadStream(in io.ReadCloser, f func(...byte)) (e error) {
 	defer in.Close()
 	b, e := io.ReadAll(in)
@@ -94,11 +87,4 @@ func ReadStream(in io.ReadCloser, f func(...byte)) (e error) {
 		log.Print(e)
 	}
 	return
-}
-
-func ExitOnError(ec int, f func() error) {
-	if e := f(); e != nil {
-		log.Print(e)
-		os.Exit(ec)
-	}
 }

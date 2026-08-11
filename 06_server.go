@@ -6,16 +6,11 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"sync"
 )
 
 const INDEX_FILE = `(i?)/$`
 const SERVEABLE_FILE = `(i?)^.*\.html$`
 const ADDRESS = ":3000"
-const TLS_ADDRESS = ":3001"
-const CERTIFICATE_FILE = "cert.pem"
-const KEY_FILE = "key.pem"
-
 const CURRENT_DIR = "."
 
 //	https://eli.thegreenplace.net/2022/serving-static-files-and-web-apps-in-go/
@@ -28,31 +23,11 @@ func init() {
 }
 
 func main() {
-	var wg sync.WaitGroup
-	Launch(&wg, ADDRESS, func(a string) error {
-		return http.ListenAndServe(
-			a,
+	log.Fatal(
+		http.ListenAndServe(
+			ADDRESS,
 			http.FileServer(
-				ProtectedFS(CURRENT_DIR)))
-	})
-
-	Launch(&wg, TLS_ADDRESS, func(a string) error {
-		return http.ListenAndServeTLS(
-			a,
-			CERTIFICATE_FILE,
-			KEY_FILE,
-			http.FileServer(
-				ProtectedFS(CURRENT_DIR)))
-	})
-
-	wg.Wait()
-}
-
-func Launch(wg *sync.WaitGroup, a string, f func(string) error) {
-	wg.Go(func() {
-		log.Printf("launching server on %v", a)
-		log.Print(f(a))
-	})
+				ProtectedFS(CURRENT_DIR))))
 }
 
 func ProtectedFS(root string) protectedFS {

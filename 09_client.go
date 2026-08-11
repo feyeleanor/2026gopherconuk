@@ -28,6 +28,16 @@ func init() {
 
 func main() {
 	H := regexp.MustCompile(HREF)
+	ProcessTargets(func(b ...byte) {
+		if H.MatchString(string(b)) {
+			s := H.FindAllStringIndex(string(b), FETCH_ALL_RESULTS)
+			log.Printf("Found pattern %v times", len(s))
+
+			for _, v := range s {
+				log.Printf("Pattern matched: %v", string(b[v[0]:v[1]]))
+			}
+		}
+	})
 
 	ProcessTargets(func(b ...byte) {
 		ProcessText(H, b...)
@@ -36,39 +46,30 @@ func main() {
 }
 
 func ProcessTargets(f func(...byte)) {
-	if len(os.Args) > 0 {
-		for _, fn := range os.Args[1:] {
-			if W.MatchString(fn) {
-				ForServer(fn, f)
-			} else {
-				ForFile(fn, f)
-			}
-		}
-	}
-	return
-}
+	ForArgs(func(fn string) {
+		if W.MatchString(fn) {
+			log.Printf("Load Web Page: %v", fn)
+			c := http.Client{Timeout: time.Duration(TIMEOUT) * time.Second}
+			ExitOnError(E_FILE_READ, func() (e error) {
+				if r, e := c.Get(fn); e == nil {
+					ReadStream(r.Body, func(b ...byte) {
+						f(b...)
+					})
+				}
+				return
+			})
 
-func ForServer(url string, f func(...byte)) {
-	log.Printf("Load Web Page: %v", url)
-	c := http.Client{Timeout: time.Duration(TIMEOUT) * time.Second}
-	ExitOnError(E_FILE_READ, func() (e error) {
-		if r, e := c.Get(url); e == nil {
-			ReadStream(r.Body, func(b ...byte) {
-				f(b...)
+		} else {
+			log.Printf("Load File: %v", fn)
+			ExitOnError(E_FILE_READ, func() (e error) {
+				if b, e := os.ReadFile(fn); e == nil {
+					f(b...)
+				}
+				return
 			})
 		}
-		return
 	})
-}
-
-func ForFile(n string, f func(...byte)) {
-	log.Printf("Load File: %v", n)
-	ExitOnError(E_FILE_READ, func() (e error) {
-		if b, e := os.ReadFile(n); e == nil {
-			f(b...)
-		}
-		return
-	})
+	return
 }
 
 func ProcessText(r *regexp.Regexp, b ...byte) {
@@ -78,6 +79,14 @@ func ProcessText(r *regexp.Regexp, b ...byte) {
 
 		for _, v := range s {
 			log.Printf("Pattern matched: %v", string(b[v[0]:v[1]]))
+		}
+	}
+}
+
+func ForArgs(f func(string)) {
+	if len(os.Args) > 0 {
+		for _, fn := range os.Args[1:] {
+			f(fn)
 		}
 	}
 }

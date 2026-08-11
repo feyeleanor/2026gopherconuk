@@ -29,30 +29,26 @@ func init() {
 
 func main() {
 	var wg sync.WaitGroup
-	Launch(&wg, ADDRESS, func(a string) error {
-		return http.ListenAndServe(
-			a,
-			http.FileServer(
-				ProtectedFS(CURRENT_DIR)))
-	})
-
-	Launch(&wg, TLS_ADDRESS, func(a string) error {
-		return http.ListenAndServeTLS(
-			a,
-			CERTIFICATE_FILE,
-			KEY_FILE,
-			http.FileServer(
-				ProtectedFS(CURRENT_DIR)))
-	})
-
-	wg.Wait()
-}
-
-func Launch(wg *sync.WaitGroup, a string, f func(string) error) {
 	wg.Go(func() {
-		log.Printf("launching server on %v", a)
-		log.Print(f(a))
+		log.Printf("launching insecure server on %v", ADDRESS)
+		log.Print(
+			http.ListenAndServe(
+				ADDRESS,
+				http.FileServer(
+					ProtectedFS(CURRENT_DIR))))
 	})
+
+	wg.Go(func() {
+		log.Printf("launching secure server on %v", TLS_ADDRESS)
+		log.Print(
+			http.ListenAndServeTLS(
+				TLS_ADDRESS,
+				CERTIFICATE_FILE,
+				KEY_FILE,
+				http.FileServer(
+					ProtectedFS(CURRENT_DIR))))
+	})
+	wg.Wait()
 }
 
 func ProtectedFS(root string) protectedFS {

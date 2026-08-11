@@ -18,8 +18,6 @@ const KEY_FILE = "key.pem"
 
 const CURRENT_DIR = "."
 
-//	https://eli.thegreenplace.net/2022/serving-static-files-and-web-apps-in-go/
-
 var I, F *regexp.Regexp
 
 func init() {
@@ -28,15 +26,16 @@ func init() {
 }
 
 func main() {
-	var wg sync.WaitGroup
-	Launch(&wg, ADDRESS, func(a string) error {
+	var s ServerWaitGroup
+
+	s.Launch(ADDRESS, func(a string) error {
 		return http.ListenAndServe(
 			a,
 			http.FileServer(
 				ProtectedFS(CURRENT_DIR)))
 	})
 
-	Launch(&wg, TLS_ADDRESS, func(a string) error {
+	s.Launch(TLS_ADDRESS, func(a string) error {
 		return http.ListenAndServeTLS(
 			a,
 			CERTIFICATE_FILE,
@@ -45,11 +44,15 @@ func main() {
 				ProtectedFS(CURRENT_DIR)))
 	})
 
-	wg.Wait()
+	s.Wait()
 }
 
-func Launch(wg *sync.WaitGroup, a string, f func(string) error) {
-	wg.Go(func() {
+type ServerWaitGroup struct {
+	sync.WaitGroup
+}
+
+func (s *ServerWaitGroup) Launch(a string, f func(string) error) {
+	s.Go(func() {
 		log.Printf("launching server on %v", a)
 		log.Print(f(a))
 	})
