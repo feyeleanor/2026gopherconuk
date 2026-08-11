@@ -32,7 +32,6 @@ func init() {
 
 func main() {
 	H := regexp.MustCompile(HREF)
-
 	ProcessTargets(func(n string, b ...byte) {
 		ProcessText(H, n, b...)
 	})
@@ -40,20 +39,26 @@ func main() {
 }
 
 func ProcessTargets(f func(string, ...byte)) {
-	if len(os.Args) > 0 {
-		var wg sync.WaitGroup
-		for _, fn := range os.Args[1:] {
-			wg.Go(func() {
-				if W.MatchString(fn) {
-					ForServer(fn, f)
-				} else {
-					ForFile(fn, f)
-				}
-			})
-		}
-		wg.Wait()
-	}
+	var wg sync.WaitGroup
+	ForArgs(func(fn string) {
+		wg.Go(func() {
+			if W.MatchString(fn) {
+				ForServer(fn, f)
+			} else {
+				ForFile(fn, f)
+			}
+		})
+	})
+	wg.Wait()
 	return
+}
+
+func ForArgs(f func(string)) {
+	if len(os.Args) > 0 {
+		for _, fn := range os.Args[1:] {
+			f(fn)
+		}
+	}
 }
 
 func ForServer(url string, f func(string, ...byte)) {

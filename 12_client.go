@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"io"
 	"log"
 	"net/http"
@@ -14,7 +13,6 @@ import (
 const FETCH_ALL_RESULTS = -1
 const HREF = `(i?)href[:blank:]*=[:blank:]*"[^"]*"`
 const WEB_DOMAIN = `(i?)https?://.*/?`
-const TLS_OVER_LOCALHOST = "(?)https://localhost"
 
 const TIMEOUT = 3
 
@@ -23,16 +21,14 @@ const (
 	E_FILE_READ
 )
 
-var W, T *regexp.Regexp
+var W *regexp.Regexp
 
 func init() {
 	W = regexp.MustCompile(WEB_DOMAIN)
-	T = regexp.MustCompile(TLS_OVER_LOCALHOST)
 }
 
 func main() {
 	H := regexp.MustCompile(HREF)
-
 	ProcessTargets(func(n string, b ...byte) {
 		ProcessText(H, n, b...)
 	})
@@ -40,30 +36,31 @@ func main() {
 }
 
 func ProcessTargets(f func(string, ...byte)) {
-	if len(os.Args) > 0 {
-		var wg sync.WaitGroup
-		for _, fn := range os.Args[1:] {
-			wg.Go(func() {
-				if W.MatchString(fn) {
-					ForServer(fn, f)
-				} else {
-					ForFile(fn, f)
-				}
-			})
-		}
-		wg.Wait()
-	}
+	var wg sync.WaitGroup
+	ForArgs(func(fn string) {
+		wg.Go(func() {
+			if W.MatchString(fn) {
+				ForServer(fn, f)
+			} else {
+				ForFile(fn, f)
+			}
+		})
+	})
+	wg.Wait()
 	return
+}
+
+func ForArgs(f func(string)) {
+	if len(os.Args) > 0 {
+		for _, fn := range os.Args[1:] {
+			f(fn)
+		}
+	}
 }
 
 func ForServer(url string, f func(string, ...byte)) {
 	log.Printf("Load Web Page: %v", url)
 	c := http.Client{Timeout: time.Duration(TIMEOUT) * time.Second}
-	if T.MatchString(url) {
-		c.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true}}
-	}
 	ExitOnError(E_FILE_READ, func() (e error) {
 		if r, e := c.Get(url); e == nil {
 			ReadStream(r.Body, func(b ...byte) {
