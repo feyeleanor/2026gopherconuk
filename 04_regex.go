@@ -30,13 +30,15 @@ func main() {
 }
 
 func ProcessText(r *regexp.Regexp, b ...byte) {
-	if r.MatchString(string(b)) {
-		s := r.FindAllStringIndex(string(b), FETCH_ALL_RESULTS)
-		log.Printf("Found pattern %v times", len(s))
+	s := string(b)
+	if r.MatchString(s) {
+		i := r.FindAllStringIndex(s, FETCH_ALL_RESULTS)
+		log.Printf("Found pattern %v times", len(i))
 
-		for _, v := range s {
-			log.Printf("Found pattern at: %v", v)
-			log.Printf("Pattern matched: %s", b[v[0]:v[1]])
+		for _, v := range i {
+			left, right := v[0], v[1]
+			log.Printf("Found REGEX between: %v and %v", left, right)
+			log.Printf("Pattern matched: %s", s[left:right])
 		}
 	}
 }

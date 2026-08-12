@@ -32,6 +32,7 @@ func main() {
 	log.Printf("does string contain REGEX? %v", r.MatchString(fs))
 
 	i := r.FindStringIndex(fs)
-	log.Printf("Found REGEX between: %v and %v", i[0], i[1])
-	log.Printf("Pattern matched: %s", f[i[0]:i[1]])
+	left, right := i[0], i[1]
+	log.Printf("Found REGEX between: %v and %v", left, right)
+	log.Printf("Pattern matched: %s", f[left:right])
 }

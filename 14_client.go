@@ -90,12 +90,15 @@ func ForFile(n string, f func(string, ...byte)) {
 }
 
 func ProcessText(r *regexp.Regexp, n string, b ...byte) {
-	if r.MatchString(string(b)) {
-		s := r.FindAllStringIndex(string(b), FETCH_ALL_RESULTS)
-		log.Printf("%v: Found pattern %v times", n, len(s))
+	s := string(b)
+	if r.MatchString(s) {
+		i := r.FindAllStringIndex(s, FETCH_ALL_RESULTS)
+		log.Printf("%v: Found pattern %v times", n, len(i))
 
-		for _, v := range s {
-			log.Printf("%v: Pattern matched: %s", n, b[v[0]:v[1]])
+		for _, v := range i {
+			left, right := v[0], v[1]
+			log.Printf("%v: Found REGEX between: %v and %v", n, left, right)
+			log.Printf("%v: Pattern matched: %s", n, s[left:right])
 		}
 	}
 }
