@@ -29,31 +29,30 @@ func init() {
 }
 
 func main() {
-	ProcessTargets()
+	ForArgs(func(fn string) {
+		ProcessTarget(fn, ProcessText)
+	})
 	os.Exit(E_OK)
 }
 
-func ProcessTargets() {
-	ForArgs(func(fn string) {
-		if W.MatchString(fn) {
-			log.Printf("Load Web Page: %v", fn)
-			c := http.Client{Timeout: time.Duration(TIMEOUT) * time.Second}
-			if r, e := c.Get(fn); e == nil {
-				ReadStream(r.Body, func(b ...byte) {
-					ProcessText(H, b...)
-				})
-			} else {
-				log.Print(e)
-				os.Exit(E_FILE_READ)
-			}
-
+func ProcessTarget(fn string, f func(*regexp.Regexp, ...byte)) {
+	if W.MatchString(fn) {
+		log.Printf("Load Web Page: %v", fn)
+		c := http.Client{Timeout: time.Duration(TIMEOUT) * time.Second}
+		if r, e := c.Get(fn); e == nil {
+			ReadStream(r.Body, func(b ...byte) {
+				f(H, b...)
+			})
 		} else {
-			os.Stderr.WriteString("cannot load local files\n")
-			os.Stderr.WriteString("please run as: go run 05_client.go https://[url]\n")
-			os.Exit(E_NOT_A_URL)
+			log.Print(e)
+			os.Exit(E_FILE_READ)
 		}
-	})
-	return
+
+	} else {
+		os.Stderr.WriteString("cannot load local files\n")
+		os.Stderr.WriteString("please run as: go run 05_client.go https://[url]\n")
+		os.Exit(E_NOT_A_URL)
+	}
 }
 
 func ProcessText(r *regexp.Regexp, b ...byte) {
@@ -80,8 +79,7 @@ func ForArgs(f func(string)) {
 
 func ReadStream(in io.ReadCloser, f func(...byte)) (e error) {
 	defer in.Close()
-	b, e := io.ReadAll(in)
-	if e == nil {
+	if b, e := io.ReadAll(in); e == nil {
 		f(b...)
 	} else {
 		log.Print(e)

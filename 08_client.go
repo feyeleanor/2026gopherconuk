@@ -28,35 +28,34 @@ func init() {
 }
 
 func main() {
-	ProcessTargets()
+	ForArgs(func(fn string) {
+		ProcessTarget(fn, ProcessText)
+	})
 	os.Exit(E_OK)
 }
 
-func ProcessTargets() {
-	ForArgs(func(fn string) {
-		if W.MatchString(fn) {
-			log.Printf("Load Web Page: %v", fn)
-			c := http.Client{Timeout: time.Duration(TIMEOUT) * time.Second}
-			if r, e := c.Get(fn); e == nil {
-				ReadStream(r.Body, func(b ...byte) {
-					ProcessText(H, b...)
-				})
-			} else {
-				log.Print(e)
-				os.Exit(E_FILE_READ)
-			}
-
+func ProcessTarget(fn string, f func(*regexp.Regexp, ...byte)) {
+	if W.MatchString(fn) {
+		log.Printf("Load Web Page: %v", fn)
+		c := http.Client{Timeout: time.Duration(TIMEOUT) * time.Second}
+		if r, e := c.Get(fn); e == nil {
+			ReadStream(r.Body, func(b ...byte) {
+				f(H, b...)
+			})
 		} else {
-			log.Printf("Load File: %v", fn)
-			if b, e := os.ReadFile(fn); e == nil {
-				ProcessText(H, b...)
-			} else {
-				log.Print(e)
-				os.Exit(E_FILE_READ)
-			}
+			log.Print(e)
+			os.Exit(E_FILE_READ)
 		}
-	})
-	return
+
+	} else {
+		log.Printf("Load File: %v", fn)
+		if b, e := os.ReadFile(fn); e == nil {
+			f(H, b...)
+		} else {
+			log.Print(e)
+			os.Exit(E_FILE_READ)
+		}
+	}
 }
 
 func ProcessText(r *regexp.Regexp, b ...byte) {
