@@ -20,29 +20,26 @@ const (
 	E_FILE_READ
 )
 
-var W *regexp.Regexp
+var H, W *regexp.Regexp
 
 func init() {
+	H = regexp.MustCompile(HREF)
 	W = regexp.MustCompile(WEB_DOMAIN)
 }
 
 func main() {
-	H := regexp.MustCompile(HREF)
-	ProcessTargets(func(b ...byte) {
-		ProcessText(H, b...)
+	ForArgs(func(fn string) {
+		ProcessTarget(fn, FindLinks)
 	})
 	os.Exit(E_OK)
 }
 
-func ProcessTargets(f func(...byte)) {
-	ForArgs(func(fn string) {
-		if W.MatchString(fn) {
-			ForServer(fn, f)
-		} else {
-			ForFile(fn, f)
-		}
-	})
-	return
+func ProcessTarget(fn string, f func(...byte)) {
+	if W.MatchString(fn) {
+		ForServer(fn, f)
+	} else {
+		ForFile(fn, f)
+	}
 }
 
 func ForArgs(f func(string)) {
@@ -69,31 +66,30 @@ func ForServer(url string, f func(...byte)) {
 func ForFile(n string, f func(...byte)) {
 	log.Printf("Load File: %v", n)
 	ExitOnError(E_FILE_READ, func() (e error) {
-		if b, e := os.ReadFile(n); e == nil {
-			f(b...)
+		if r, e := os.Open(n); e == nil {
+			ReadStream(r, func(b ...byte) {
+				f(b...)
+			})
 		}
 		return
 	})
 }
 
-func ProcessText(r *regexp.Regexp, b ...byte) {
+func FindLinks(b ...byte) {
 	s := string(b)
-	if r.MatchString(s) {
-		i := r.FindAllStringIndex(s, FETCH_ALL_RESULTS)
-		log.Printf("Found pattern %v times", len(i))
+	i := H.FindAllStringIndex(s, FETCH_ALL_RESULTS)
+	log.Printf("Found pattern %v times", len(i))
 
-		for _, v := range i {
-			left, right := v[0], v[1]
-			log.Printf("Found REGEX between: %v and %v", left, right)
-			log.Printf("Pattern matched: %s", s[left:right])
-		}
+	for _, v := range i {
+		left, right := v[0], v[1]
+		log.Printf("Found REGEX between: %v and %v", left, right)
+		log.Printf("Pattern matched: %s", s[left:right])
 	}
 }
 
 func ReadStream(in io.ReadCloser, f func(...byte)) (e error) {
 	defer in.Close()
-	b, e := io.ReadAll(in)
-	if e == nil {
+	if b, e := io.ReadAll(in); e == nil {
 		f(b...)
 	} else {
 		log.Print(e)
