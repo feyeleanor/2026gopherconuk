@@ -34,7 +34,7 @@ func main() {
 			log.Printf("Found pattern %v times", len(s))
 
 			for _, v := range s {
-				log.Printf("Pattern matched: %v", string(b[v[0]:v[1]]))
+				log.Printf("Pattern matched: %s", b[v[0]:v[1]])
 			}
 		}
 	})

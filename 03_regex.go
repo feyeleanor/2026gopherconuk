@@ -42,9 +42,7 @@ func ProcessText(r *regexp.Regexp, b ...byte) {
 
 		for _, v := range s {
 			log.Printf("Found pattern at: %v", v)
-			log.Printf("Pattern matched: %v", string(b[v[0]:v[1]]))
+			log.Printf("Pattern matched: %s", b[v[0]:v[1]])
 		}
 	}
 }
-
-// string(b[71:110])

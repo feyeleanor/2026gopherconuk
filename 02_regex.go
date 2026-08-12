@@ -38,9 +38,6 @@ func ProcessText(r *regexp.Regexp, b ...byte) {
 	if r.MatchString(string(b)) {
 		i := r.FindStringIndex(string(b))
 		log.Printf("Found pattern at: %v", i)
-		log.Printf("Pattern matched: %v", string(b[i[0]:i[1]]))
+		log.Printf("Pattern matched: %s", b[i[0]:i[1]])
 	}
 }
-
-
-// string(b[71:110])
