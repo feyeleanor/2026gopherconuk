@@ -8,26 +8,22 @@ import (
 )
 
 const REGEX = `(i?)href[:blank:]*=[:blank:]*"[^"]*"`
-
-func main() {
-	r := regexp.MustCompile(REGEX)
-	log.Print(r)
-
-	s := strings.NewReader(`
+const TEST_PAGE = `
 		<html>
 			<head></head>
 			<body>
 				<a href="https://my.test.domain/some/path">
 			</body>
-		</html>`)
+		</html>`
 
-	f, e := io.ReadAll(s)
-	if e != nil {
-		panic(e)
-	}
+func main() {
+	r := regexp.MustCompile(REGEX)
+	log.Print(r)
+
+	s := strings.NewReader(TEST_PAGE)
+	f, _ := io.ReadAll(s)
 
 	fs := string(f)
-
 	log.Print(fs)
 	log.Printf("does string contain REGEX? %v", r.MatchString(fs))
 
